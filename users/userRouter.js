@@ -20,7 +20,7 @@ router.post('/', validateUser, (req, res) => { // needs a user in the header
 
 });
 
-router.post('/:id/posts', validateUser, validatePost, (req, res) => {
+router.post('/:id/posts', validateUserId, validatePost, (req, res) => {
 
   const comment = {
     text: req.body.text,
@@ -102,9 +102,9 @@ router.delete('/:id', validateUserId, (req, res) => {
 
 });
 
-router.put('/:id', validateUserId, (req, res) => {
+router.put('/:id', validateUserId, validateUser, (req, res) => {
 
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id); // same as parseInt() - parseint would get rid of the decimal?? 
 
   db.getById(id)
   .then(rep => {
@@ -115,14 +115,11 @@ router.put('/:id', validateUserId, (req, res) => {
       name: req.body.name
     };
 
-    console.log(user)
-    console.log(rep)
-
     db.update(req.params.id, user)
     .then(count => {
       res.status(200).json({
         message: `${count} user(s) edited.`
-      })
+      });
     })
     .catch(err => {
       res.status(500).json({

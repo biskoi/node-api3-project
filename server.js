@@ -14,7 +14,8 @@ server.get('/', (req, res) => {
 //custom middleware
 
 function logger(req, res, next) {
-console.dir(`${req.method} to ${req.originalUrl} with query ${req.query} at ${new Date().toISOString()}`)
+console.dir(`${req.method} to ${req.originalUrl} with query ${JSON.stringify(req.query)} at ${new Date().toISOString()}`)
+// JSON.stringify is turning the req.query object into a string so that we can see it in our console.dir
 next();
 }
 
