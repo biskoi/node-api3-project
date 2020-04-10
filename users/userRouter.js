@@ -1,47 +1,202 @@
 const express = require('express');
-
+const db = require('./userDb')
+const postDb = require('../posts/postDb')
 const router = express.Router();
 
-router.post('/', (req, res) => {
-  // do your magic!
+// router.use(middleware here)
+// router.use(validateUserId)
+
+router.post('/', validateUser, (req, res) => { // needs a user in the header
+
+  db.insert(req.body)
+  .then(rep => {
+    res.status(201).json(rep)
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server returned error: ${err}`
+    });
+  });
+
 });
 
-router.post('/:id/posts', (req, res) => {
-  // do your magic!
+router.post('/:id/posts', validateUserId, validatePost, (req, res) => {
+
+  const comment = {
+    text: req.body.text,
+    user_id: req.params.id
+  }
+  
+  postDb.insert(comment)
+  .then(rep => {
+    res.status(201).json(rep);
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server returned error: ${err}`
+    });
+  });
+
 });
 
 router.get('/', (req, res) => {
-  // do your magic!
+
+  db.get()
+  .then(rep => {
+    res.status(200).json(rep);
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server returned error: ${err}`
+    });
+  });
+
 });
 
-router.get('/:id', (req, res) => {
-  // do your magic!
+router.get('/:id', validateUserId, (req, res) => {
+
+  const id = req.params.id;
+
+  db.getById(id)
+  .then(rep => {
+    res.status(200).json(rep);
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server returned error: ${err}`
+    });
+  });
+
 });
 
 router.get('/:id/posts', (req, res) => {
-  // do your magic!
+  const id = req.params.id;
+
+  db.getUserPosts(id)
+  .then(rep => {
+    res.status(200).json(rep)
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server returned error: ${err}`
+    });
+  });
+
 });
 
-router.delete('/:id', (req, res) => {
-  // do your magic!
+router.delete('/:id', validateUserId, (req, res) => {
+
+  const id = req.params.id
+
+  db.remove(id)
+  .then(count => {
+    res.status(200).json({
+      message: `${count} user(s) deleted.`
+    });
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server returned error: ${err}`
+    });
+  });
+
 });
 
-router.put('/:id', (req, res) => {
-  // do your magic!
+router.put('/:id', validateUserId, validateUser, (req, res) => {
+
+  const id = Number(req.params.id); // same as parseInt() - parseint would get rid of the decimal?? 
+
+  db.getById(id)
+  .then(rep => {
+    
+    const user = {
+      ...rep,
+      id: req.body.id,
+      name: req.body.name
+    };
+
+    db.update(req.params.id, user)
+    .then(count => {
+      res.status(200).json({
+        message: `${count} user(s) edited.`
+      });
+    })
+    .catch(err => {
+      res.status(500).json({
+        message: `Server returned error nest: ${err}`
+      });
+    });
+
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server returned error: ${err}`
+    });
+  });
+  
+
 });
 
 //custom middleware
 
 function validateUserId(req, res, next) {
-  // do your magic!
-}
+
+  const id = req.query.user;
+
+  if (id === undefined) {
+    res.status(400).json({
+      message: `Please log in to use this function.`
+    });
+  };
+
+  db.getById(id)
+  .then(rep => {
+    if (rep) {
+      req.user = rep;
+      next();
+    } else {
+      res.status(404).json({
+        message: `User ID ${id} could not be found for login.`
+      });
+    };
+  })
+  .catch(err => {
+    res.status(500).json({
+      message: `Server error. ${err}`
+    });
+  });
+};
 
 function validateUser(req, res, next) {
-  // do your magic!
-}
+
+  if (!req.body) {
+    res.status(400).json({
+      message: 'User data missing.'
+    });
+  } else if (!req.body.name) {
+    res.status(400).json({
+      message: 'Missing required user name.'
+    });
+  } else {
+    next();
+  };
+
+};
 
 function validatePost(req, res, next) {
-  // do your magic!
-}
+
+  if(!req.body) {
+    res.status(400).json({
+      message: `Missing post data.`
+    });
+  } else if (!req.body.text) {
+    res.status(400).json({
+      message: `Missing post text data.`
+    });
+  } else {
+    next();
+  };
+
+};
 
 module.exports = router;
